@@ -2,9 +2,26 @@ import tkinter as tk
 from tkinter import messagebox
 import speech_recognition as sr
 import pyttsx3
+import sqlite3
+from datetime import datetime
 
 # Initialize text-to-speech engine
 engine = pyttsx3.init()
+
+# Connect to SQLite database
+conn = sqlite3.connect('commands.db')
+c = conn.cursor()
+
+# Create table for storing commands and responses
+c.execute('''
+    CREATE TABLE IF NOT EXISTS logs (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        command TEXT,
+        response TEXT,
+        timestamp TEXT
+    )
+''')
+conn.commit()
 
 def process_command(command):
     # Dummy implementation for command processing
@@ -13,11 +30,18 @@ def process_command(command):
     elif "weather" in command:
         response = "I can't check the weather right now, but you can look it up online."
     elif "time" in command:
-        from datetime import datetime
         now = datetime.now().strftime("%H:%M:%S")
         response = f"The current time is {now}."
     else:
         response = "Sorry, I didn't understand that command."
+    
+    # Log the command and response to the database
+    c.execute('''
+        INSERT INTO logs (command, response, timestamp) 
+        VALUES (?, ?, ?)
+    ''', (command, response, datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
+    conn.commit()
+
     return response
 
 def listen_command():
@@ -53,3 +77,6 @@ record_button = tk.Button(frame, text="Start Listening", command=listen_command)
 record_button.pack(pady=10)
 
 root.mainloop()
+
+# Close the database connection when the application exits
+conn.close()
